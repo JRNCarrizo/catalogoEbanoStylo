@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f8f7f2" />
+    <meta name="description" content="Muebles con personalidad. Descubrí sillones, sillas y mesas de Ébano Stylo." />
+    <title>Ébano Stylo | Muebles con personalidad</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#inicio" aria-label="Ébano Stylo, inicio">
+        <img src="doc/WhatsApp%20Image%202026-10-19%20at%2022.53.19.jpeg" alt="Ébano Stylo" />
+      </a>
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="#catalogo">Catálogo</a>
+        <a href="#nosotros">Nuestra esencia</a>
+      </nav>
+      <div class="top-actions">
+        <button class="admin-open" id="admin-open" type="button"><span aria-hidden="true">⚙</span> Administrar</button>
+        <button class="cart-open" id="cart-open" type="button" aria-label="Abrir carrito">
+          <span class="cart-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span><span class="cart-label">Mi selección</span><span id="cart-count" class="cart-count">0</span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" id="inicio">
+        <div class="hero-copy">
+          <p class="eyebrow"><span></span> DISEÑO PARA VIVIRLO</p>
+          <h1>Tu casa, con<br /><em>otra actitud.</em></h1>
+          <p class="hero-text">Piezas que invitan a quedarse. Encontrá ese sillón que convierte cualquier rincón en tu lugar favorito.</p>
+          <a class="button button-dark" href="#catalogo">Explorar catálogo <span aria-hidden="true">↘</span></a>
+          <div class="hero-note"><span class="note-mark">E</span><span>Ébano Stylo<br /><small>Hecho para sentirte en casa.</small></span></div>
+        </div>
+        <div class="hero-image-wrap">
+          <img class="hero-image" src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1600&h=1100&q=85" alt="Sillón de diseño en un ambiente cálido" />
+          <div class="hero-sticker"><span>Tu próximo<br />favorito</span><b>↗</b></div>
+          <div class="hero-caption">FORMAS QUE ABRAZAN <span>01 / 03</span></div>
+        </div>
+        <div class="hero-side-label">MUEBLES CON PERSONALIDAD</div>
+      </section>
+
+      <section class="catalog-section" id="catalogo">
+        <div class="section-heading">
+          <div><p class="eyebrow">UNA CASA, MUCHAS HISTORIAS</p><h2>Piezas para <em>quedarse.</em></h2></div>
+          <p>Diseño, comodidad y ese detalle que hace que un espacio se sienta tuyo.</p>
+        </div>
+        <div class="catalog-tools">
+          <div class="category-list" id="category-list" aria-label="Filtrar por categoría"></div>
+          <label class="search-box"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Buscar un mueble" aria-label="Buscar un mueble" /></label>
+        </div>
+        <div class="product-grid" id="product-grid" aria-live="polite"></div>
+        <p class="empty-state" id="empty-state" hidden>No encontramos muebles con esa búsqueda.</p>
+      </section>
+
+      <section class="brand-note" id="nosotros">
+        <div class="brand-note-mark">E<span>.</span></div>
+        <div><p class="eyebrow">UN POCO DE NUESTRA ESENCIA</p><h2>El diseño también<br />se <em>siente.</em></h2></div>
+        <p>Creemos en muebles que hacen más que ocupar un lugar: lo transforman. Elegí tu pieza, contanos qué imaginás y la pensamos juntos.</p>
+        <a href="#catalogo" class="text-link">Encontrá la tuya <span aria-hidden="true">↗</span></a>
+      </section>
+    </main>
+
+    <footer class="footer"><a href="#inicio" class="footer-brand">ÉBANO <span>STYLO</span></a><span class="footer-credit">© Copyright desarrollado por <a href="mailto:jrncarrizo@gmail.com">Jrncarrizo</a></span><span class="footer-year">© 2026 Ébano Stylo</span></footer>
+
+    <div class="overlay" id="overlay" hidden></div>
+    <aside class="cart-drawer" id="cart-drawer" aria-label="Mi selección" aria-hidden="true">
+      <div class="drawer-heading"><div><p class="eyebrow">TU ESPACIO, TU ELECCIÓN</p><h2>Mi selección</h2></div><button class="icon-button" data-close-drawer aria-label="Cerrar carrito">×</button></div>
+      <div class="cart-items" id="cart-items"></div>
+      <div class="cart-empty" id="cart-empty"><span>▱</span><p>Tu selección está esperando<br />su primera pieza.</p><button class="text-link" data-close-drawer>Volver al catálogo ↗</button></div>
+      <div class="cart-footer" id="cart-footer" hidden><div class="cart-total"><span>Total estimado</span><strong id="cart-total"></strong></div><p>El precio final y la disponibilidad se confirman por WhatsApp.</p><button class="button button-coral whatsapp-button" id="whatsapp-button">Consultar por WhatsApp <span aria-hidden="true">↗</span></button></div>
+    </aside>
+
+    <section class="product-detail-modal" id="product-detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title" hidden>
+      <button class="icon-button detail-close" data-close-modal aria-label="Cerrar detalle">×</button>
+      <div class="detail-gallery">
+        <div class="detail-image-wrap"><img id="detail-main-image" alt="" /><button class="gallery-arrow gallery-previous" data-gallery-step="-1" aria-label="Imagen anterior">‹</button><button class="gallery-arrow gallery-next" data-gallery-step="1" aria-label="Imagen siguiente">›</button></div>
+        <div class="detail-thumbnails" id="detail-thumbnails"></div>
+      </div>
+      <div class="detail-copy"><p class="eyebrow" id="detail-section"></p><h2 id="detail-title"></h2><div class="detail-price" id="detail-price"></div><p class="detail-description" id="detail-description"></p><div class="detail-specifications" id="detail-specifications" hidden></div><button class="button button-dark detail-add" id="detail-add">Agregar a mi selección <span aria-hidden="true">+</span></button></div>
+    </section>
+
+    <section class="admin-modal login-modal" id="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-title" hidden>
+      <div class="admin-header"><div><p class="eyebrow">ACCESO ADMINISTRADOR</p><h2 id="login-title">Ingresá a tu catálogo</h2></div><button class="icon-button" id="login-close" aria-label="Cerrar acceso">×</button></div>
+      <form class="admin-form login-form" id="login-form">
+        <label class="form-field">Usuario<input name="username" type="text" autocomplete="username" required /></label>
+        <label class="form-field">Contraseña<input name="password" type="password" autocomplete="current-password" required /></label>
+        <p class="login-error" id="login-error" role="alert" hidden>Usuario o contraseña incorrectos.</p>
+        <button class="button button-dark" type="submit">Iniciar sesión <span aria-hidden="true">→</span></button>
+      </form>
+    </section>
+
+    <section class="admin-modal" id="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-title" hidden>
+      <div class="admin-header"><div><p class="eyebrow">PANEL DE GESTIÓN</p><h2 id="admin-title">Tu catálogo</h2></div><div class="admin-header-actions"><button class="small-button" id="admin-logout" type="button">Cerrar sesión</button><button class="icon-button" id="admin-close" aria-label="Cerrar administrador">×</button></div></div>
+      <div class="admin-tabs" role="tablist"><button class="admin-tab is-active" data-tab="products" role="tab">Productos</button><button class="admin-tab" data-tab="sections" role="tab">Secciones</button><button class="admin-tab" data-tab="settings" role="tab">Contacto</button></div>
+      <div class="admin-content" id="admin-content"></div>
+      <p class="admin-footnote">Los cambios se guardan en este navegador. Para compartirlos con todos tus clientes, conectá una base de datos antes de publicar.</p>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
