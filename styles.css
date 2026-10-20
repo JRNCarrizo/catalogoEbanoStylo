@@ -1,3 +1,4 @@
+.image-dropzone.is-uploading { opacity: .65; pointer-events: none; }
 :root {
   color-scheme: light;
   --ink: #172526;

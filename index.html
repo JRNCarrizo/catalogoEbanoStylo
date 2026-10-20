@@ -88,9 +88,11 @@
     <section class="admin-modal login-modal" id="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-title" hidden>
       <div class="admin-header"><div><p class="eyebrow">ACCESO ADMINISTRADOR</p><h2 id="login-title">Ingresá a tu catálogo</h2></div><button class="icon-button" id="login-close" aria-label="Cerrar acceso">×</button></div>
       <form class="admin-form login-form" id="login-form">
+      <form class="admin-form login-form" id="login-form">
         <label class="form-field">Usuario<input name="username" type="text" autocomplete="username" required /></label>
         <label class="form-field">Contraseña<input name="password" type="password" autocomplete="current-password" required /></label>
-        <p class="login-error" id="login-error" role="alert" hidden>Usuario o contraseña incorrectos.</p>
+        <p class="login-error" id="login-error" role="alert" hidden>No se pudo iniciar sesión. Revisá tus datos o la configuración del sitio.</p>
+          <div class="form-field form-wide"><span>Fotos del producto (hasta 5)</span><div class="image-dropzone" id="image-dropzone"><span class="upload-icon" aria-hidden="true">↑</span><strong>Arrastrá las fotos acá</strong><small id="upload-status">o elegilas desde tu dispositivo · se guardan en Cloudinary</small><button class="small-button" id="choose-images" type="button">Elegir fotos</button><input id="product-images" type="file" accept="image/*" multiple hidden /></div><div class="image-previews" id="image-previews"></div></div>
         <button class="button button-dark" type="submit">Iniciar sesión <span aria-hidden="true">→</span></button>
       </form>
     </section>

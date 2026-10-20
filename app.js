@@ -46,8 +46,7 @@ const detailModal = document.querySelector("#product-detail-modal");
 const loginModal = document.querySelector("#login-modal");
 const adminModal = document.querySelector("#admin-modal");
 const adminContent = document.querySelector("#admin-content");
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "admin123";
+let adminAuthenticated = false;
 const ADMIN_SESSION_KEY = "ebano-stylo-admin-session";
 
 function persist() {
@@ -92,26 +91,44 @@ async function compressImage(file) {
   canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
   const blob = await new Promise((resolve, reject) => canvas.toBlob((result) => result ? resolve(result) : reject(new Error("No se pudo procesar la foto")), "image/jpeg", 0.78));
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve({ src: reader.result, name: file.name });
-    reader.onerror = () => reject(new Error("No se pudo leer la foto"));
-    reader.readAsDataURL(blob);
-  });
+  return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+}
+
+async function uploadImage(file) {
+  const signatureResponse = await fetch("/api/cloudinary/signature", { method: "POST" });
+  const signatureData = await signatureResponse.json();
+  if (!signatureResponse.ok) throw new Error(signatureData.error || "No se pudo autorizar la carga");
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("api_key", signatureData.apiKey);
+  formData.append("timestamp", signatureData.timestamp);
+  formData.append("folder", signatureData.folder);
+  formData.append("signature", signatureData.signature);
+  const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(signatureData.cloudName)}/image/upload`, { method: "POST", body: formData });
+  const uploadData = await uploadResponse.json();
+  if (!uploadResponse.ok) throw new Error(uploadData.error?.message || "Cloudinary rechazó la imagen");
+  return { src: uploadData.secure_url, name: file.name };
 }
 
 async function addImageFiles(fileList) {
   const files = Array.from(fileList);
   const availableSlots = 5 - draftImages.length;
   if (files.length > availableSlots) showToast("Podés agregar hasta 5 fotos por producto");
-  for (const file of files.slice(0, availableSlots)) {
-    try {
-      draftImages.push(await compressImage(file));
-    } catch {
-      showToast(`No se pudo cargar ${file.name}`);
+  const dropzone = document.querySelector("#image-dropzone");
+  dropzone?.classList.add("is-uploading");
+  try {
+    for (const file of files.slice(0, availableSlots)) {
+      try {
+        draftImages.push(await uploadImage(await compressImage(file)));
+        renderImagePreviews();
+      } catch (error) {
+        showToast(error.message || `No se pudo cargar ${file.name}`);
+      }
     }
+  } finally {
+    dropzone?.classList.remove("is-uploading");
   }
-  renderImagePreviews();
 }
 
 function showProductDetail(productId) {
@@ -418,7 +435,7 @@ document.querySelector("#cart-open").addEventListener("click", () => {
 document.querySelector("#admin-open").addEventListener("click", () => {
   activeAdminTab = "products";
   editingProductId = null;
-  if (sessionStorage.getItem(ADMIN_SESSION_KEY) === "active") {
+  if (adminAuthenticated) {
     renderAdmin();
     openLayer("admin");
   } else {
@@ -429,21 +446,32 @@ document.querySelector("#admin-open").addEventListener("click", () => {
 });
 document.querySelector("#login-close").addEventListener("click", closeLayers);
 document.querySelector("#admin-close").addEventListener("click", closeLayers);
-document.querySelector("#admin-logout").addEventListener("click", () => {
-  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+document.querySelector("#admin-logout").addEventListener("click", async () => {
+  await fetch("/api/admin/logout", { method: "POST" }).catch(() => {});
+  adminAuthenticated = false;
   document.querySelector("#login-form").reset();
   document.querySelector("#login-error").hidden = true;
   openLayer("login");
 });
-document.querySelector("#login-form").addEventListener("submit", (event) => {
+document.querySelector("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(event.currentTarget);
-  if (formData.get("username") === ADMIN_USERNAME && formData.get("password") === ADMIN_PASSWORD) {
-    sessionStorage.setItem(ADMIN_SESSION_KEY, "active");
+  const submitButton = event.currentTarget.querySelector('[type="submit"]');
+  submitButton.disabled = true;
+  try {
+    const response = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: formData.get("username"), password: formData.get("password") }),
+    });
+    if (!response.ok) throw new Error("Usuario o contraseña incorrectos.");
+    adminAuthenticated = true;
     renderAdmin();
     openLayer("admin");
-  } else {
+  } catch {
     document.querySelector("#login-error").hidden = false;
+  } finally {
+    submitButton.disabled = false;
   }
 });
 document.querySelector("#whatsapp-button").addEventListener("click", checkout);
