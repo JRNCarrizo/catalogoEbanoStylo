@@ -348,13 +348,20 @@ function checkout() {
   }
   const lines = cart.map((item) => {
     const product = products.find((entry) => entry.id === item.id);
-    return product ? `• ${product.name} x${item.quantity}${product.showPrice ? ` — ${money(product.price * item.quantity)}` : " — consultar precio"}` : "";
+    return product ? `• ${product.name} × ${item.quantity}${product.showPrice ? ` — ${money(product.price * item.quantity)}` : " — precio a consultar"}` : "";
   }).filter(Boolean);
+  const hasProductsWithoutPrice = cart.some((item) => {
+    const product = products.find((entry) => entry.id === item.id);
+    return product && !product.showPrice;
+  });
   const total = cart.reduce((sum, item) => {
     const product = products.find((entry) => entry.id === item.id);
     return sum + (product?.showPrice ? product.price * item.quantity : 0);
   }, 0);
-  const message = `Hola, Ébano Stylo. Quisiera consultar por:\n${lines.join("\n")}\n\nTotal estimado: ${money(total)}. ¿Me cuentan disponibilidad y opciones?`;
+  const totalLine = hasProductsWithoutPrice
+    ? `Total: a confirmar (hay productos con precio a consultar).${total ? ` Subtotal estimado de los productos con precio: ${money(total)}.` : ""}`
+    : `Total estimado: ${money(total)}.`;
+  const message = `¡Hola, Ébano Stylo! 😊\nQuisiera consultar por estos productos:\n\n${lines.join("\n")}\n\n${totalLine}\n¿Me podrían confirmar la disponibilidad y las opciones de entrega?\n\n¡Muchas gracias!`;
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
 }
 

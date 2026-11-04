@@ -28,4 +28,6 @@ grant select, insert, update, delete on table public.products to service_role;
 
 Los productos, las URL y los identificadores de imágenes se guardan en Supabase. Las fotos se cargan en Cloudinary. Al reemplazar o borrar productos, Netlify elimina de Cloudinary las fotos que ya no se usan; las imágenes cargadas antes de guardar sus identificadores no pueden borrarse automáticamente. Las funciones de Netlify protegen las operaciones de escritura con la sesión de administrador. El WhatsApp y las secciones vacías todavía se guardan en el navegador.
 
+Para cargar los dos productos de demostración (Sillón Nube y Silla Nórdica), ejecutá una vez el contenido de [`supabase/seed-demo.sql`](./supabase/seed-demo.sql) en **Supabase → SQL Editor**. Están marcados como `DEMO`, usan fotos de muestra y precios ilustrativos. La carga no duplica ni sobrescribe filas existentes con esos IDs.
+
 La vista previa servida con `python -m http.server` no ejecuta Netlify Functions. Para probar login y cargas localmente, usá Netlify CLI con `netlify dev`.
