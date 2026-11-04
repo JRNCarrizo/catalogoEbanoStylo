@@ -92,6 +92,14 @@ function getProductImages(product) {
   return [...new Set([...images, product.image].filter(Boolean))];
 }
 
+function getProductImageRecords(product) {
+  const images = Array.isArray(product.images) ? product.images : [];
+  const publicIds = Array.isArray(product.imagePublicIds) ? product.imagePublicIds : [];
+  const records = images.map((src, index) => ({ src, publicId: publicIds[index] || "" }));
+  if (product.image && !images.includes(product.image)) records.unshift({ src: product.image, publicId: "" });
+  return records.filter((record, index, list) => record.src && list.findIndex((entry) => entry.src === record.src) === index);
+}
+
 function renderImagePreviews() {
   const previews = document.querySelector("#image-previews");
   if (!previews) return;
@@ -125,7 +133,7 @@ async function uploadImage(file) {
   const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(signatureData.cloudName)}/image/upload`, { method: "POST", body: formData });
   const uploadData = await uploadResponse.json();
   if (!uploadResponse.ok) throw new Error(uploadData.error?.message || "Cloudinary rechazó la imagen");
-  return { src: uploadData.secure_url, name: file.name };
+  return { src: uploadData.secure_url, publicId: uploadData.public_id, name: file.name };
 }
 
 async function addImageFiles(fileList) {
@@ -292,7 +300,7 @@ function renderAdmin() {
 function renderAdminProducts() {
   const productRows = products.map((product) => `<div class="admin-row"><div><strong>${escapeHtml(product.name)}</strong><small>${escapeHtml(product.section)} · ${product.showPrice ? money(product.price) : "Precio oculto"}</small></div><div class="admin-row-actions"><button class="small-button" data-edit="${escapeHtml(product.id)}">Editar</button><button class="small-button danger" data-delete="${escapeHtml(product.id)}">Eliminar</button></div></div>`).join("");
   const current = products.find((product) => product.id === editingProductId);
-  draftImages = current ? getProductImages(current).map((src) => ({ src, name: "Foto existente" })) : [];
+  draftImages = current ? getProductImageRecords(current).map((image) => ({ ...image, name: "Foto existente" })) : [];
   adminContent.innerHTML = `<section class="admin-product-list"><div class="admin-section-heading"><div><p class="eyebrow">TU INVENTARIO</p><h3>Productos <span>${products.length}</span></h3></div><p>Gestioná lo que ven tus clientes en el catálogo.</p></div>
       <div class="admin-product-rows">${productRows || `<p class="empty-state">Todavía no hay productos. Agregá el primero con el formulario.</p>`}</div></section>
     <form class="admin-form product-form" id="product-form">
@@ -402,14 +410,16 @@ document.addEventListener("click", (event) => {
   const deleteButton = event.target.closest("[data-delete]");
   if (deleteButton) {
     deleteButton.disabled = true;
-    requestProduct("DELETE", { id: deleteButton.dataset.delete }).then(() => {
+    requestProduct("DELETE", { id: deleteButton.dataset.delete }).then((result) => {
       products = products.filter((product) => product.id !== deleteButton.dataset.delete);
       cart = cart.filter((item) => item.id !== deleteButton.dataset.delete);
       persist();
       renderAdminProducts();
       renderProducts();
       renderCart();
-      showToast("Producto eliminado");
+      showToast(result.cleanupWarning
+        ? "Producto eliminado; algunas fotos no se pudieron borrar de Cloudinary."
+        : "Producto eliminado");
     }).catch((error) => {
       deleteButton.disabled = false;
       showToast(error.message);
@@ -534,15 +544,18 @@ adminContent.addEventListener("submit", async (event) => {
       previousPrice,
       showPrice: formData.has("showPrice"),
       images: draftImages.map((image) => image.src),
+      imagePublicIds: draftImages.map((image) => image.publicId || ""),
       image: draftImages[0]?.src || "",
       tag: String(formData.get("tag")).trim(),
     };
     const submitButton = event.target.querySelector('[type="submit"]');
     submitButton.disabled = true;
+    let cleanupWarning = false;
     try {
       if (editingProductId) {
         const currentProduct = products.find((product) => product.id === editingProductId);
         const updatedProduct = await requestProduct("PATCH", { ...currentProduct, ...values });
+        cleanupWarning = updatedProduct.cleanupWarning === true;
         products = products.map((product) => product.id === editingProductId ? updatedProduct : product);
         editingProductId = null;
       } else {
@@ -557,7 +570,9 @@ adminContent.addEventListener("submit", async (event) => {
       renderAdminProducts();
       renderCategories();
       renderProducts();
-      showToast("Catálogo actualizado");
+      showToast(cleanupWarning
+        ? "Catálogo actualizado; algunas fotos anteriores no se pudieron borrar de Cloudinary."
+        : "Catálogo actualizado");
     } catch (error) {
       submitButton.disabled = false;
       showToast(error.message);
