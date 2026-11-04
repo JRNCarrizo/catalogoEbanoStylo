@@ -203,6 +203,7 @@ function renderProducts() {
     const discount = product.previousPrice && product.previousPrice > product.price
       ? Math.round((1 - product.price / product.previousPrice) * 100)
       : 0;
+    const cartItem = cart.find((entry) => entry.id === product.id);
     const image = getProductImages(product)[0];
     const imageLayout = ["landscape", "square", "portrait"].includes(product.imageLayout) ? product.imageLayout : "standard";
     return `<article class="product-card" style="animation-delay:${Math.min(index * 55, 220)}ms">
@@ -210,11 +211,12 @@ function renderProducts() {
         ${image ? `<img class="product-image" src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy" />` : `<span class="product-image-placeholder">Foto próximamente</span>`}
         ${product.tag ? `<span class="product-tag">${escapeHtml(product.tag)}</span>` : ""}
         ${discount ? `<span class="discount-tag">-${discount}%</span>` : ""}
+        ${cartItem ? `<span class="selected-product-indicator" aria-label="En tu selección, ${cartItem.quantity} ${cartItem.quantity === 1 ? "unidad" : "unidades"}"><span aria-hidden="true">✓</span> En tu selección · ${cartItem.quantity}</span>` : ""}
       </div>
       <div class="product-info"><div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.description)}</p></div>
         <div class="price-block">${product.showPrice ? `${product.previousPrice ? `<span class="price-old">${money(product.previousPrice)}</span>` : ""}<span class="price-current">${money(product.price)}</span>` : `<span class="price-hidden">Consultar</span>`}</div>
       </div>
-      <div class="product-actions"><button data-product-detail="${escapeHtml(product.id)}">Ver detalle ↗</button><button class="add-button" data-add="${escapeHtml(product.id)}">Agregar +</button></div>
+      <div class="product-actions"><button data-product-detail="${escapeHtml(product.id)}">Ver detalle ↗</button><button class="add-button ${cartItem ? "is-selected" : ""}" data-add="${escapeHtml(product.id)}">${cartItem ? "Agregar otro +" : "Agregar +"}</button></div>
     </article>`;
   }).join("");
   const emptyState = document.querySelector("#empty-state");
@@ -291,9 +293,10 @@ function renderAdminProducts() {
   const productRows = products.map((product) => `<div class="admin-row"><div><strong>${escapeHtml(product.name)}</strong><small>${escapeHtml(product.section)} · ${product.showPrice ? money(product.price) : "Precio oculto"}</small></div><div class="admin-row-actions"><button class="small-button" data-edit="${escapeHtml(product.id)}">Editar</button><button class="small-button danger" data-delete="${escapeHtml(product.id)}">Eliminar</button></div></div>`).join("");
   const current = products.find((product) => product.id === editingProductId);
   draftImages = current ? getProductImages(current).map((src) => ({ src, name: "Foto existente" })) : [];
-  adminContent.innerHTML = `<div>${productRows || `<p class="empty-state">Todavía no hay productos.</p>`}</div>
-    <form class="admin-form" id="product-form">
-      <h3>${current ? "Editar producto" : "Agregar producto"}</h3>
+  adminContent.innerHTML = `<section class="admin-product-list"><div class="admin-section-heading"><div><p class="eyebrow">TU INVENTARIO</p><h3>Productos <span>${products.length}</span></h3></div><p>Gestioná lo que ven tus clientes en el catálogo.</p></div>
+      <div class="admin-product-rows">${productRows || `<p class="empty-state">Todavía no hay productos. Agregá el primero con el formulario.</p>`}</div></section>
+    <form class="admin-form product-form" id="product-form">
+      <div class="form-intro"><p class="eyebrow">${current ? "ACTUALIZÁ TU CATÁLOGO" : "NUEVA PIEZA"}</p><h3>${current ? "Editar producto" : "Agregar un producto"}</h3><p>Completá la información del mueble. Las fotos podés sumarlas ahora o más adelante.</p></div>
       <label class="form-field">Nombre<input name="name" required value="${escapeHtml(current?.name || "")}" placeholder="Ej. Sillón Nube" /></label>
       <label class="form-field">Sección<select name="section" required>${sections.map((section) => `<option ${current?.section === section ? "selected" : ""}>${escapeHtml(section)}</option>`).join("")}</select></label>
       <label class="form-field">Precio actual (ARS)<input name="price" type="number" min="0" step="1000" value="${current?.price ?? ""}" placeholder="485000" /></label>
@@ -301,7 +304,7 @@ function renderAdminProducts() {
       <label class="form-field">Formato de imagen<select name="imageLayout"><option value="standard" ${!current?.imageLayout || current.imageLayout === "standard" ? "selected" : ""}>Estándar</option><option value="landscape" ${current?.imageLayout === "landscape" ? "selected" : ""}>Horizontal</option><option value="square" ${current?.imageLayout === "square" ? "selected" : ""}>Cuadrada</option><option value="portrait" ${current?.imageLayout === "portrait" ? "selected" : ""}>Vertical</option></select></label>
       <label class="form-field form-wide">Descripción breve<input name="description" value="${escapeHtml(current?.description || "")}" placeholder="Materiales, color o medidas" /></label>
       <label class="form-field form-wide">Detalles del producto<textarea name="details" placeholder="Medidas, materiales, colores disponibles y cuidados">${escapeHtml(current?.details || "")}</textarea></label>
-      <div class="form-field form-wide"><span>Fotos del producto (opcional, hasta 5)</span><div class="image-dropzone" id="image-dropzone"><span class="upload-icon" aria-hidden="true">↑</span><strong>Arrastrá las fotos acá</strong><small>Podés agregarlas más adelante · JPG, PNG o WEBP</small><button class="small-button" id="choose-images" type="button">Elegir fotos</button><input id="product-images" type="file" accept="image/*" multiple hidden /></div><div class="image-previews" id="image-previews"></div></div>
+      <div class="form-field form-wide"><span>Fotos <small>Opcional · hasta 5 imágenes</small></span><div class="image-dropzone" id="image-dropzone"><span class="upload-icon" aria-hidden="true">↑</span><strong>Arrastrá tus fotos acá</strong><small>O buscá archivos en tu dispositivo. Podés cargarlas después.</small><button class="small-button" id="choose-images" type="button">Elegir fotos</button><input id="product-images" type="file" accept="image/*" multiple hidden /></div><div class="image-previews" id="image-previews"></div></div>
       <label class="form-field">Etiqueta (opcional)<input name="tag" value="${escapeHtml(current?.tag || "")}" placeholder="Nuevo / Favorito" /></label>
       <label class="check-field"><input name="showPrice" type="checkbox" ${current?.showPrice !== false ? "checked" : ""} /> Mostrar precio</label>
       <button class="button button-dark" type="submit">${current ? "Guardar cambios" : "Agregar al catálogo"}</button>
@@ -325,6 +328,7 @@ function addToCart(productId) {
   else cart.push({ id: productId, quantity: 1 });
   persist();
   renderCart();
+  renderProducts();
   showToast("Agregado a tu selección");
 }
 
@@ -380,12 +384,14 @@ document.addEventListener("click", (event) => {
     cart = cart.filter((entry) => entry.quantity > 0);
     persist();
     renderCart();
+    renderProducts();
   }
   const removeButton = event.target.closest("[data-remove]");
   if (removeButton) {
     cart = cart.filter((entry) => entry.id !== removeButton.dataset.remove);
     persist();
     renderCart();
+    renderProducts();
   }
   const editButton = event.target.closest("[data-edit]");
   if (editButton) {
