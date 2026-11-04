@@ -170,7 +170,11 @@ function showProductDetail(productId) {
 
 function renderDetailGallery() {
   const mainImage = document.querySelector("#detail-main-image");
-  mainImage.src = detailImages[detailImageIndex] || "";
+  const imageWrap = mainImage.parentElement;
+  const hasImages = detailImages.length > 0;
+  imageWrap.classList.toggle("has-no-image", !hasImages);
+  mainImage.hidden = !hasImages;
+  mainImage.src = hasImages ? detailImages[detailImageIndex] : "";
   mainImage.alt = `${document.querySelector("#detail-title").textContent} · foto ${detailImageIndex + 1}`;
   document.querySelector("#detail-thumbnails").innerHTML = detailImages.map((src, index) => `<button class="detail-thumbnail ${index === detailImageIndex ? "is-active" : ""}" data-gallery-image="${index}" aria-label="Ver foto ${index + 1}"><img src="${escapeHtml(src)}" alt="" /></button>`).join("");
   document.querySelectorAll("[data-gallery-step]").forEach((button) => { button.hidden = detailImages.length < 2; });
@@ -199,11 +203,11 @@ function renderProducts() {
     const discount = product.previousPrice && product.previousPrice > product.price
       ? Math.round((1 - product.price / product.previousPrice) * 100)
       : 0;
-    const image = getProductImages(product)[0] || "";
+    const image = getProductImages(product)[0];
     const imageLayout = ["landscape", "square", "portrait"].includes(product.imageLayout) ? product.imageLayout : "standard";
     return `<article class="product-card" style="animation-delay:${Math.min(index * 55, 220)}ms">
       <div class="product-image-wrap ${imageLayout === "standard" ? "" : `image-layout-${imageLayout}`}">
-        <img class="product-image" src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy" />
+        ${image ? `<img class="product-image" src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy" />` : `<span class="product-image-placeholder">Foto próximamente</span>`}
         ${product.tag ? `<span class="product-tag">${escapeHtml(product.tag)}</span>` : ""}
         ${discount ? `<span class="discount-tag">-${discount}%</span>` : ""}
       </div>
@@ -227,7 +231,7 @@ function renderCart() {
   itemsElement.innerHTML = cart.map((item) => {
     const product = products.find((entry) => entry.id === item.id);
     if (!product) return "";
-    return `<article class="cart-item"><img src="${escapeHtml(product.image)}" alt="" /><div><h3>${escapeHtml(product.name)}</h3><small>${product.showPrice ? money(product.price) : "Precio a consultar"}</small><div class="quantity-control"><button data-quantity="${escapeHtml(product.id)}" data-change="-1" aria-label="Quitar una unidad">−</button><span>${item.quantity}</span><button data-quantity="${escapeHtml(product.id)}" data-change="1" aria-label="Agregar una unidad">+</button></div></div><button class="remove-item" data-remove="${escapeHtml(product.id)}" aria-label="Quitar ${escapeHtml(product.name)}">×</button></article>`;
+    return `<article class="cart-item">${product.image ? `<img src="${escapeHtml(product.image)}" alt="" />` : `<span class="cart-image-placeholder" aria-hidden="true">E</span>`}<div><h3>${escapeHtml(product.name)}</h3><small>${product.showPrice ? money(product.price) : "Precio a consultar"}</small><div class="quantity-control"><button data-quantity="${escapeHtml(product.id)}" data-change="-1" aria-label="Quitar una unidad">−</button><span>${item.quantity}</span><button data-quantity="${escapeHtml(product.id)}" data-change="1" aria-label="Agregar una unidad">+</button></div></div><button class="remove-item" data-remove="${escapeHtml(product.id)}" aria-label="Quitar ${escapeHtml(product.name)}">×</button></article>`;
   }).join("");
   const empty = cart.length === 0;
   document.querySelector("#cart-empty").hidden = !empty;
@@ -297,7 +301,7 @@ function renderAdminProducts() {
       <label class="form-field">Formato de imagen<select name="imageLayout"><option value="standard" ${!current?.imageLayout || current.imageLayout === "standard" ? "selected" : ""}>Estándar</option><option value="landscape" ${current?.imageLayout === "landscape" ? "selected" : ""}>Horizontal</option><option value="square" ${current?.imageLayout === "square" ? "selected" : ""}>Cuadrada</option><option value="portrait" ${current?.imageLayout === "portrait" ? "selected" : ""}>Vertical</option></select></label>
       <label class="form-field form-wide">Descripción breve<input name="description" value="${escapeHtml(current?.description || "")}" placeholder="Materiales, color o medidas" /></label>
       <label class="form-field form-wide">Detalles del producto<textarea name="details" placeholder="Medidas, materiales, colores disponibles y cuidados">${escapeHtml(current?.details || "")}</textarea></label>
-      <div class="form-field form-wide"><span>Fotos del producto (hasta 5)</span><div class="image-dropzone" id="image-dropzone"><span class="upload-icon" aria-hidden="true">↑</span><strong>Arrastrá las fotos acá</strong><small>o elegilas desde tu dispositivo · JPG, PNG o WEBP</small><button class="small-button" id="choose-images" type="button">Elegir fotos</button><input id="product-images" type="file" accept="image/*" multiple hidden /></div><div class="image-previews" id="image-previews"></div></div>
+      <div class="form-field form-wide"><span>Fotos del producto (opcional, hasta 5)</span><div class="image-dropzone" id="image-dropzone"><span class="upload-icon" aria-hidden="true">↑</span><strong>Arrastrá las fotos acá</strong><small>Podés agregarlas más adelante · JPG, PNG o WEBP</small><button class="small-button" id="choose-images" type="button">Elegir fotos</button><input id="product-images" type="file" accept="image/*" multiple hidden /></div><div class="image-previews" id="image-previews"></div></div>
       <label class="form-field">Etiqueta (opcional)<input name="tag" value="${escapeHtml(current?.tag || "")}" placeholder="Nuevo / Favorito" /></label>
       <label class="check-field"><input name="showPrice" type="checkbox" ${current?.showPrice !== false ? "checked" : ""} /> Mostrar precio</label>
       <button class="button button-dark" type="submit">${current ? "Guardar cambios" : "Agregar al catálogo"}</button>
@@ -512,10 +516,6 @@ adminContent.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(event.target);
   if (event.target.id === "product-form") {
-    if (!draftImages.length) {
-      showToast("Agregá al menos una foto del producto");
-      return;
-    }
     const price = Number(formData.get("price")) || 0;
     const previousPrice = Number(formData.get("previousPrice")) || null;
     const values = {
@@ -528,7 +528,7 @@ adminContent.addEventListener("submit", async (event) => {
       previousPrice,
       showPrice: formData.has("showPrice"),
       images: draftImages.map((image) => image.src),
-      image: draftImages[0].src,
+      image: draftImages[0]?.src || "",
       tag: String(formData.get("tag")).trim(),
     };
     const submitButton = event.target.querySelector('[type="submit"]');

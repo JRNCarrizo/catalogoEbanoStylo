@@ -50,8 +50,10 @@ function validateProduct(product, requireId = true) {
   if (typeof product.price !== "number" || !Number.isFinite(product.price) || product.price < 0) return "Invalid product price";
   if (product.previousPrice !== null && (typeof product.previousPrice !== "number" || !Number.isFinite(product.previousPrice) || product.previousPrice < 0)) return "Invalid previous price";
   if (typeof product.showPrice !== "boolean" || typeof product.image !== "string" || typeof product.tag !== "string") return "Invalid product fields";
-  if (!Array.isArray(product.images) || product.images.length < 1 || product.images.length > 5
-    || product.images.some((image) => typeof image !== "string" || !image.startsWith("https://"))) return "Add between one and five valid product images";
+  if (product.image && !product.image.startsWith("https://")) return "Invalid product image";
+  if (!Array.isArray(product.images) || product.images.length > 5
+    || product.images.some((image) => typeof image !== "string" || !image.startsWith("https://"))) return "Invalid product images";
+  if (!product.images.length && product.image) return "Invalid product images";
   if (!["standard", "landscape", "square", "portrait"].includes(product.imageLayout)) return "Invalid image layout";
   return null;
 }
