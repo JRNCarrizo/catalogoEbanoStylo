@@ -1,6 +1,24 @@
 import { isAuthenticated, jsonResponse } from "./_auth.mjs";
 import { createHash } from "node:crypto";
 
+class DatabaseRequestError extends Error {
+  constructor(message, code) {
+    super(message);
+    this.name = "DatabaseRequestError";
+    this.code = code;
+  }
+}
+
+function databaseErrorResponse(error, action) {
+  if (error instanceof DatabaseRequestError && ["42703", "PGRST204"].includes(error.code)) {
+    return jsonResponse(502, {
+      error: "Falta actualizar la tabla de productos. En Supabase → SQL Editor, ejecutá: alter table public.products add column if not exists image_public_ids text[] not null default '{}';",
+    });
+  }
+  console.error(`Could not ${action} product data`, error);
+  return jsonResponse(502, { error: `No se pudieron ${action} los productos. Revisá las variables de Supabase y los logs de la función en Netlify.` });
+}
+
 function getDatabaseConfig() {
   const projectUrl = process.env.SUPABASE_URL?.replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
   const apiKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -118,7 +136,13 @@ async function databaseRequest(config, path, options = {}) {
   const body = await response.text();
   if (!response.ok) {
     console.error("Supabase request failed", response.status, body);
-    throw new Error("Database request failed");
+    let databaseError = {};
+    try {
+      databaseError = JSON.parse(body);
+    } catch {
+      databaseError = {};
+    }
+    throw new DatabaseRequestError(databaseError.message || "Database request failed", databaseError.code);
   }
   return body ? JSON.parse(body) : [];
 }
@@ -137,8 +161,8 @@ export const handler = async (event) => {
     try {
       const rows = await databaseRequest(config, "products?select=*&order=created_at.asc");
       return jsonResponse(200, rows.map(toProduct));
-    } catch {
-      return jsonResponse(502, { error: "Could not load products from the database" });
+    } catch (error) {
+      return databaseErrorResponse(error, "cargar");
     }
   }
 
@@ -159,8 +183,8 @@ export const handler = async (event) => {
         body: JSON.stringify(toRow(body)),
       });
       return jsonResponse(201, toProduct(rows[0]));
-    } catch {
-      return jsonResponse(502, { error: "Could not save the product" });
+    } catch (error) {
+      return databaseErrorResponse(error, "guardar");
     }
   }
 
@@ -196,7 +220,7 @@ export const handler = async (event) => {
     if (!rows.length) return jsonResponse(404, { error: "Product not found" });
     const cleanupWarning = await deleteCloudinaryImages(rows[0].image_public_ids || []);
     return jsonResponse(200, { ok: true, cleanupWarning });
-  } catch {
-    return jsonResponse(502, { error: "Could not update the product" });
+  } catch (error) {
+    return databaseErrorResponse(error, "actualizar");
   }
 };
