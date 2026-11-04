@@ -175,8 +175,7 @@ h2 { font-size: clamp(34px, 4vw, 49px); line-height: 1.12; margin-bottom: 0; }
 .admin-modal[hidden] { display: none; }
 .login-modal { width: min(460px, calc(100% - 30px)); padding: 32px 38px 26px; }
 .login-brand { display: flex; align-items: center; justify-content: space-between; }
-.login-brand-mark { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid #c5dcd5; border-radius: 50%; color: var(--teal-dark); font: 26px Georgia, serif; }
-.login-brand-mark span { color: var(--coral); }
+.login-brand img { display: block; width: 92px; height: 70px; object-fit: contain; mix-blend-mode: multiply; }
 .login-heading { margin-top: 28px; }
 .login-heading .eyebrow { margin-bottom: 9px; }
 .login-heading h2 { font-size: 30px; letter-spacing: -.8px; }
