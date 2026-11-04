@@ -16,3 +16,8 @@
   from = "/api/cloudinary/signature"
   to = "/.netlify/functions/cloudinary-signature"
   status = 200
+
+[[redirects]]
+  from = "/api/products"
+  to = "/.netlify/functions/products"
+  status = 200

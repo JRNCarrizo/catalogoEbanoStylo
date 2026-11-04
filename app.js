@@ -1,20 +1,10 @@
 const STORAGE_KEYS = {
-  products: "ebano-stylo-products",
   sections: "ebano-stylo-sections",
   settings: "ebano-stylo-settings",
   cart: "ebano-stylo-cart",
 };
 
 const initialSections = ["Sillones", "Sillas", "Mesas"];
-const initialProducts = [
-  { id: "sillon-nube", name: "Sillón Nube", section: "Sillones", description: "Bouclé suave · tono marfil", price: 485000, previousPrice: 560000, showPrice: true, image: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=900&q=82", tag: "Favorito" },
-  { id: "sillon-oliva", name: "Sillón Oliva", section: "Sillones", description: "Lino natural · madera maciza", price: 529000, previousPrice: null, showPrice: true, image: "https://images.unsplash.com/photo-1598300056393-4aac492f4344?auto=format&fit=crop&w=900&q=82", tag: "" },
-  { id: "sillon-luna", name: "Sillón Luna", section: "Sillones", description: "Diseño envolvente · verde salvia", price: 398000, previousPrice: null, showPrice: false, image: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=900&q=82&sat=-25", tag: "Nuevo" },
-  { id: "silla-nordica", name: "Silla Nórdica", section: "Sillas", description: "Roble claro · asiento tapizado", price: 128000, previousPrice: null, showPrice: true, image: "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=900&q=82", tag: "" },
-  { id: "mesa-roble", name: "Mesa Roble", section: "Mesas", description: "Madera maciza · 140 cm", price: 375000, previousPrice: 420000, showPrice: true, image: "https://images.unsplash.com/photo-1533090481720-856c6e3c1fdc?auto=format&fit=crop&w=900&q=82", tag: "" },
-  { id: "sillon-terracota", name: "Sillón Terracota", section: "Sillones", description: "Tejido artesanal · patas de haya", price: 445000, previousPrice: null, showPrice: true, image: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=900&q=82&hue=15", tag: "" },
-];
-
 function load(key, fallback) {
   try {
     const value = localStorage.getItem(key);
@@ -24,10 +14,11 @@ function load(key, fallback) {
   }
 }
 
-let products = load(STORAGE_KEYS.products, initialProducts);
+let products = [];
 let sections = load(STORAGE_KEYS.sections, initialSections);
 let settings = load(STORAGE_KEYS.settings, { whatsapp: "" });
 let cart = load(STORAGE_KEYS.cart, []);
+let catalogLoadError = false;
 let activeSection = "Todos";
 let activeAdminTab = "products";
 let editingProductId = null;
@@ -51,7 +42,6 @@ const ADMIN_SESSION_KEY = "ebano-stylo-admin-session";
 
 function persist() {
   try {
-    localStorage.setItem(STORAGE_KEYS.products, JSON.stringify(products));
     localStorage.setItem(STORAGE_KEYS.sections, JSON.stringify(sections));
     localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
     localStorage.setItem(STORAGE_KEYS.cart, JSON.stringify(cart));
@@ -60,6 +50,33 @@ function persist() {
     showToast("No se pudo guardar. Probá con menos fotos o imágenes más livianas.");
     return false;
   }
+}
+
+async function requestProduct(method, product) {
+  const response = await fetch("/api/products", {
+    method,
+    headers: { "Content-Type": "application/json" },
+    ...(product ? { body: JSON.stringify(product) } : {}),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "No se pudo guardar el producto");
+  return result;
+}
+
+async function loadCatalog() {
+  try {
+    products = await requestProduct("GET");
+    catalogLoadError = false;
+    sections = [...new Set([...sections, ...products.map((product) => product.section)])];
+    cart = cart.filter((item) => products.some((product) => product.id === item.id));
+    persist();
+  } catch (error) {
+    catalogLoadError = true;
+    showToast(error.message || "No se pudo cargar el catálogo");
+  }
+  renderCategories();
+  renderProducts();
+  renderCart();
 }
 
 function escapeHtml(value = "") {
@@ -196,7 +213,11 @@ function renderProducts() {
       <div class="product-actions"><button data-product-detail="${escapeHtml(product.id)}">Ver detalle ↗</button><button class="add-button" data-add="${escapeHtml(product.id)}">Agregar +</button></div>
     </article>`;
   }).join("");
-  document.querySelector("#empty-state").hidden = visibleProducts.length !== 0;
+  const emptyState = document.querySelector("#empty-state");
+  emptyState.textContent = catalogLoadError
+    ? "No se pudo cargar el catálogo. Probá recargar la página."
+    : "No encontramos muebles con esa búsqueda.";
+  emptyState.hidden = visibleProducts.length !== 0;
 }
 
 function renderCart() {
@@ -370,12 +391,19 @@ document.addEventListener("click", (event) => {
   }
   const deleteButton = event.target.closest("[data-delete]");
   if (deleteButton) {
-    products = products.filter((product) => product.id !== deleteButton.dataset.delete);
-    cart = cart.filter((item) => item.id !== deleteButton.dataset.delete);
-    persist();
-    renderAdminProducts();
-    renderProducts();
-    renderCart();
+    deleteButton.disabled = true;
+    requestProduct("DELETE", { id: deleteButton.dataset.delete }).then(() => {
+      products = products.filter((product) => product.id !== deleteButton.dataset.delete);
+      cart = cart.filter((item) => item.id !== deleteButton.dataset.delete);
+      persist();
+      renderAdminProducts();
+      renderProducts();
+      renderCart();
+      showToast("Producto eliminado");
+    }).catch((error) => {
+      deleteButton.disabled = false;
+      showToast(error.message);
+    });
   }
   const deleteSectionButton = event.target.closest("[data-delete-section]");
   if (deleteSectionButton) {
@@ -480,7 +508,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeLayers();
 });
 
-adminContent.addEventListener("submit", (event) => {
+adminContent.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(event.target);
   if (event.target.id === "product-form") {
@@ -503,16 +531,32 @@ adminContent.addEventListener("submit", (event) => {
       image: draftImages[0].src,
       tag: String(formData.get("tag")).trim(),
     };
-    if (editingProductId) {
-      products = products.map((product) => product.id === editingProductId ? { ...product, ...values } : product);
-      editingProductId = null;
-    } else {
-      products.unshift({ id: `product-${Date.now()}`, ...values });
+    const submitButton = event.target.querySelector('[type="submit"]');
+    submitButton.disabled = true;
+    try {
+      if (editingProductId) {
+        const currentProduct = products.find((product) => product.id === editingProductId);
+        const updatedProduct = await requestProduct("PATCH", { ...currentProduct, ...values });
+        products = products.map((product) => product.id === editingProductId ? updatedProduct : product);
+        editingProductId = null;
+      } else {
+        const newProduct = await requestProduct("POST", {
+          id: `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          ...values,
+        });
+        products.unshift(newProduct);
+      }
+      if (!sections.includes(values.section)) sections.push(values.section);
+      persist();
+      renderAdminProducts();
+      renderCategories();
+      renderProducts();
+      showToast("Catálogo actualizado");
+    } catch (error) {
+      submitButton.disabled = false;
+      showToast(error.message);
     }
-    persist();
-    renderAdminProducts();
-    renderProducts();
-    showToast("Catálogo actualizado");
+    return;
   }
   if (event.target.id === "section-form") {
     const section = String(formData.get("section")).trim();
@@ -532,5 +576,4 @@ adminContent.addEventListener("submit", (event) => {
 });
 
 renderCategories();
-renderProducts();
-renderCart();
+loadCatalog();
